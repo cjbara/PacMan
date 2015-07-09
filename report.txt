@@ -1,0 +1,192 @@
+Cory Jbara
+Fundamentals of Computing I Final Project
+December 2014
+
+For my final project, I programmed the retro arcade game Pac-man. I made a few
+simplifications to the original game, but it plays very similarly to the original. 
+First, I used a grid of 17x15, upon which the board was drawn. Each box inside the 
+grid corresponds to 40 square pixels, which both Pac-Man and all of the ghosts can
+fit inside entirely. Also, due to this smaller nature of the board, the number
+of pellets was reduced to 155 instead of the classic 240 dots. The game I
+programmed also does not feature continuous motion as the original does. The
+user has the ability to move to the next loop by pressing any button. This
+allows for less rendering time of the board and also a more enjoyable user
+experience overall.
+
+The user is able to control Pac-Man's movement with the use of the arrow keys.
+When the game is launched, the title screen appears, which introduces the
+ghosts and point values for the pellets. It also has the instructions of how
+to play the game. Once a button is pressed, the user controls Pac-Man's
+movements with the arrow keys. Every time any key is pressed, Pac-Man and the
+ghosts move accordingly. Here are the features of the game from the user's
+perspective:
+-The red ghost, "Blinky," starts outside of the Ghost
+House, and immediately begins targeting Pac-Man. After 10 movements, Pinky
+comes out, and then after another 20 and 40 moves respectively, Inky and Clyde 
+leave the Ghost House. 
+-Whenever a Power Pellet is eaten, the ghosts all enter "frightened" mode, 
+turn blue, and can be eaten by Pac-Man. During this "frightened" state, the 
+ghosts all slow down to half of their orignial speed, thus allowing Pac-Man 
+to catch and eat them easier. When they are eaten, the number of points is 
+shown on the screen, right on top of Pac-Man. Eah ghost is worth 200 points, 
+but if more than one are eaten during a single "frightened" mode, then the 
+number is 2^(n)*200 points per ghost. When they are eaten, they become eyes 
+and venture back to the Ghost House to respawn. Once the eyes go into the 
+Ghost House, they regain their body and they immediately leave the house 
+onto the board. Lastly, when the frightened state is almost over, the 
+remaining frightened ghosts flash blue and white to show they are about to
+enter the normal mode again.
+-When Pac-Man touches a ghost that is not frightened or dead, he dies. This
+death is shown by a series of drawings. The user is instructed to click a few
+times until the animation is over. I chose to do this instead of the animation
+because I could not get the animation to work while still properly rendering
+the board and the game as a whole. The death animation concludes with Pac-Man
+losing a life, shown to the left of the board. If this was Pac-Man's last
+life, the middle of the board displays GAME OVER, and asks the user if he/she
+would like to play again. 
+-On the left of the board is a score counter. While it does not store scores
+between games, it still displays the score as the original Pac-Man games did.
+Each pellet that Pac-MAn eats is 10 points, except for the power pellets (the
+big dots), which are worth 50 each. Also, eating ghosts is worth points, as
+described above. The score is added up and displayed after every movement.
+
+From a programming perspective, this game is a much simpler version of the
+real game. Instead of using time as a variable like the original does, this
+program treats each movement as a single iteration in a loop, which makes
+playing less continuous but more feasible. Because I did not use time as a
+factor, Pac-Man and the ghosts all moved at the same rate: 1 square per button
+press (except when the ghosts are frightened, then they only move every other
+button press). each square in the grid corresponded to one 40x40 pixel block
+on the gfx window. The board on the screen is centered horizontally, and is
+nearly centered vertically. The variable radius is misleading, because it is
+actually the length of a side of one grid square. This variable can be changed
+and the program will be updated to run on a bigger or smaller window
+accordingly. Alothough it can be changed, the 40 "radius" allows for the best
+animation. 
+The board was designed by using an array, a 17x15 global variable called board. 
+This board was originally designed with the layout of the board, with 1s
+representing the blue squares that pacman and the ghosts cannot enter, 0s
+representing the location of the individual pellets, 2 representing Pac-MAn's
+location, 7 representing the power pellets (big dots), 8 representing the
+ghost house, and 9 representing blank space. Whenever Pac-Man moved, the space
+he moved to would be updated to a 2, and the space he was just in became a 9.
+This allowed Pac-Man to "eat" the dots as he passed them. The drawBoard
+function looped through every element in board and drew the corresponding
+board element. If it was a 1, there would be a filled blue rectangle drawn, a 
+0 would draw a small pellet, etc. This allowed the board to be updated every
+time Pac-Man moved. The drawBoard function also included drawing the lives and
+the total score, along with the miscellanious messages displayed on the board
+throughout the game.
+Pac-Man moved by using the arrow keys, and could move in any of the four
+directions. If the user pressed the direction into the wall, however, Pac-Man
+would not move or change orientation. Every time the user presses a button, 
+the ghosts position would be updated. So regardless of whether Pac-Man changed
+his location, the ghosts would still move. Also, Pac-Man could move through the 
+tunnel on the side and he would be placed on the other side of the board.
+Lastly, Pac-Man's movements affected the ghosts significantly. For example, if
+he got a power pellet, the ghosts would change state. This is explained below
+in the seciton about the ghosts.
+The most complicated part of the game was programming the ghosts. Each ghost
+had three (but actually five) different states. These were: chase, scatter,
+frighten, dead, and housed. Each of these states caused the ghosts to move
+differently.
+The ghosts movement followed the actual movement in the original Pac-Man game.
+Every time a ghost moved, it did a few things. First, it selected a target,
+which is selected based on its state and targeting mechanism.
+Each ghost has a distinct targeting mechanism, and these targets were selected
+in the targetGhosts function. When in the chase state, the ghosts tried to get
+to Pac-Man, but each in its own way. 
+-Blinky, the red ghost, targets pacman directly. His target is pacman's current 
+position. 
+-Pinky, the pink ghost, takes Pac-Man's orientation (up,down,left,or right)
+and targets three spaces in that direction from Pac-Man's location (in the
+original Pac-Man, it was 4, but due to the size of the board I made it 3)
+-Inky, the blue ghost, uses both Pac-Man's location and Blinky's location. He
+takes the vector from Blinky's location to two spaces in front of Pac-Man's
+location, doubles it, and targets that space on the board. 
+-Clyde, the orange ghost, decides his target based on his proximity to
+Pac-Man. If he is greater than or equal to 5 (original game was 8) spaces from
+Pac-Man's location, he will target Pac-Man directly like Blinky. Otherwise, he
+will move toward his designated corner. 
+Each ghost has a designated corner that they will try to move toward during
+their scatter state. This scatter state allows for Pac-Man to not always be
+targeted by the ghosts, thus making the game more fun, easier, and more
+realistic. During this state, the ghosts all target their corner:
+-Blinky=top right
+-Pinky=top left
+-Inky=bottom right
+-Clyde=bottom left
+Once a ghost has selected its target, it moves based on where it can and also
+which movment gets it closer to its target. A ghost can only move to spaces
+that are not 1 or 8 on the board (boundraies and the ghost house). Also,
+ghosts cannot move to where they just came from. If they go into an
+intersection, they can move either way, but cannot move back to their previous
+location. The locations of all the ghosts was stored in the array of struct
+Location. The struct Location included the current x and y, the previous x and
+y, and the orientation of the object included (Pac-Man also had his own
+Location struct for his location, along with the number 2 being placed on the 
+board array).
+To check whether Pac-Man or a ghost has died, the checkDeath function compares
+the locations of Pac-Man and all the ghosts. If they share a space, then one
+dies: the ghost if he is in frightened mode or Pac-Man otherwise. If a ghost
+dies, his target is then the top of the ghost house, he is drawn without a
+body, just eyes, and the number of points appears on Pac-Man's body. When a
+dead ghost gets to his target, it is "housed" and then goes into the house and
+immediately leaves.
+The game ended when either Pac-Man ate all of the dots or he lost all three
+lives. Whenever he died, the lives variable was decreased by 1. When lives was
+0, it displayed "GAME OVER" on the middle of the board and there was an option
+to play again or quit. If the user presses 'n' the program quits, otherwise it
+goes back to the title screen. If Pac-Man eats all the dots the same thing
+happens except it displays "WINNER!" instead of "GAME OVER". Whenever the game
+starts over completely, the board is reset to its initial values (where there
+are all of the dots on the board in the correct places), the lives are reset
+to 3, and score is reset to 0.
+The title screen required a lot of animation, and the coordinates of certain
+elements were changed in order to make it astecically pleasing. There was no
+real math or reason behind this, I just adjusted slowly until the title screen
+looked good. 
+
+In order to test the game, I had numerous people play it while it was still in
+beta. Since I understood how the game worked, I would make notes of things
+that went wrong in the logic. For example, the tunnel on the middle of the
+screen was difficult to program. The ghosts would always begin to go through
+the tunnel, but instead of going to the other side, they instead turned around
+and did not go through the tunnel. This defied the basic rule that a ghost
+could not move to their previous location. I used a lot of printf statements
+to show me variables in the terminal window, in order to understand how the
+code was going wrong. Eventually I added a block of code that forced them to
+go through the tunnel instead of turning around. Other bugs in the beta
+version of the program included:
+-Often the ghosts would leave the ghost house before they were supposed to
+-The ghosts would often stay on top of the ghost house instead of moving around
+-The ghosts would not switch to their frightened state
+-The ghosts would not stay in the frightened state as long as they should
+-The ghosts would leave the board
+-Pac-Man would not open his mouth on life 2
+-Many other small miscelaneous bugs that I fixed
+After many different people beta testing with me watching, I found all of the
+bugs (or I think I found all the bugs, as it has ran without problems for at
+least 20 straight trials). This beta test process was long, but it helped
+create a more functional and more fun Pac-Man experience for the user. 
+
+If I were to improve the game, I would allow the game to repeat so the user could
+play multiple levels until they lost all 3 lives, and then they could
+submit a high score. This score would be stored with their name in a data file
+and would display the high score screen after every game, as well as the
+game's high score on screen during the game. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
