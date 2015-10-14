@@ -1,11 +1,9 @@
-/* This is a game of Pac-Man *
- * Cory Jbara - Fundamentals of Computing I Final Project - December 2014 */
 #include "gfx3.h"
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
 
-const int rows=17, columns=15, radius=20*2; //radius is length and width of each square cell
+const int rows=17, columns=15, radius=10*2; //radius is length and width of each square cell
 
 typedef struct Location{
   int x;
@@ -23,7 +21,7 @@ char *num2str(int);
 void titleScreen(int,int,Location[],Location*,int[]);
 void drawBoard(int,int,int,int,int,int,int,int,int);
 void animateMotion(int,int,int,int,Location*,Location[],int,int,int,int[],int,int[],int[],int);
-int movePacman(Location*,Location[],char,int,int,int,int,int,int[],int*,int[]);
+int movePacman(Location*,Location[],char,int,int,int,int,int,int[],int*);
 void targetGhosts(Location[],Location*,int,int,int,int,int,int[]);
 void moveGhost(Location*,int,int,int,int,int[]);
 void drawPacman(int,int,int,int);
@@ -40,6 +38,10 @@ void resetBoard(void);
  * 0: dots that pacman has not eaten yet
  * 1: blue rectangle space that pacman cannot go through
  * 2: Pacman's location
+ * 3: Red ghost (Shadow / "Blinky") location
+ * 4: Pink ghost (Speedy / "Pinky") location
+ * 5: Cyan ghost (Bashful / "Inky") location
+ * 6: Orange ghost (Pokey / "Clyde") location
  * 7: Big dots (one in each of four corners)
  * 8: Space ghosts can go in but Pacman cannot
  * 9: Blank space */
@@ -96,10 +98,6 @@ while(1){
  titleScreen(height,width,ghosts,&pacman,state);
  score=0;
  lives=3;
-<<<<<<< HEAD
- win=0;
-=======
->>>>>>> 17cd21b2bfea53c4884fdf9dfa707042a5cad1e2
  for(i=0;i<=3;i++) loop[i]=0;	//reset the game
  resetBoard();
  gfx_wait();
@@ -147,7 +145,7 @@ while(1){
     
   /* This block updates pacman position, checks for death
    * then updates ghosts' positions, then checks for death again */
-    movePacman(&pacman,ghosts,movement,xtopleft,ytopleft,boardHeight,boardWidth,active,state,&score,frightenLoop);
+    movePacman(&pacman,ghosts,movement,xtopleft,ytopleft,boardHeight,boardWidth,active,state,&score);
     if(checkDeath(&pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,&score,newScore,frightenLoop,loop[0])){	//pacman's death?
 	for(i=0;i<=3;i++) loop[i]=0;	//reset the game
 	lives--;			//decrease the lives
@@ -524,9 +522,9 @@ void drawGhost(int x,int y,int ghost,int orientation,int state[],int frightenLoo
   }
 }
 
-int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int ytopleft,int boardHeight,int boardWidth,int activeGhosts,int state[],int *score,int frightenLoop[]){
+int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int ytopleft,int boardHeight,int boardWidth,int activeGhosts,int state[],int *score){
 /*returns 1 if pacman moves successfully, 0 if he does not move */
-  int i=pacman->y,j=pacman->x,death,k;
+  int i=pacman->y,j=pacman->x,death;
   switch(movement){
 	case 'Q'://left movement
 		if(j!=0){
@@ -534,7 +532,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
                     if(board[i][j-1]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;   //switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
                     }
 		    if(board[i][j-1]==0){*score+=10;}//add 10 points for every small dot
@@ -559,7 +556,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
                     if(board[i+1][j]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;   //switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
 		    }
 		    if(board[i+1][j]==0){*score+=10;}//add 10 points for every small dot
@@ -578,7 +574,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
 		    if(board[i][j+1]==7){
 			state[0]=state[1]=state[2]=state[3]=frighten;	//switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
 		    }
 		    if(board[i][j+1]==0){*score+=10;}//add 10 points for every small dot
@@ -603,7 +598,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
                     if(board[i-1][j]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;	//switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
                     }
 		    if(board[i-1][j]==0){*score+=10;}//add 10 points for every small dot

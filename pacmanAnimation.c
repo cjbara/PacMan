@@ -1,9 +1,7 @@
-/* This is a game of Pac-Man *
- * Cory Jbara - Fundamentals of Computing I Final Project - December 2014 */
 #include "gfx3.h"
 #include <stdio.h>
 #include <math.h>
-#include <string.h>
+#include <unistd.h>
 
 const int rows=17, columns=15, radius=20*2; //radius is length and width of each square cell
 
@@ -22,24 +20,28 @@ enum STATE {chase, scatter, frighten,dead,housed};
 char *num2str(int);
 void titleScreen(int,int,Location[],Location*,int[]);
 void drawBoard(int,int,int,int,int,int,int,int,int);
-void animateMotion(int,int,int,int,Location*,Location[],int,int,int,int[],int,int[],int[],int);
-int movePacman(Location*,Location[],char,int,int,int,int,int,int[],int*,int[]);
+void animateMotion(int,int,int,int,Location*,Location[],int,int,int,int[],int,int[]);
+int movePacman(Location*,Location[],char[],int,int,int,int,int,int[],int*);
 void targetGhosts(Location[],Location*,int,int,int,int,int,int[]);
 void moveGhost(Location*,int,int,int,int,int[]);
 void drawPacman(int,int,int,int);
-void drawGhost(int,int,int,int,int[],int); 
+void drawGhost(int,int,int,int,int[]); 
 int dotsNumber(void);
 double targetDistance(int,int,int,int);
 int minLocation(double[]);
-int checkDeath(Location*,Location[],int,int,int,int,int,int,int,int[],int*,int[],int[],int);
-void deathAnimation(Location*,Location[],int,int,int,int,int,int,int,int[],int,int[],int[],int);
-int activeGhosts(Location*,int[]);
-void ghostState(int*,int[],int[]);
-void resetBoard(void);
+int checkDeath(Location*,Location[],int,int,int,int,int,int,int,int[],int*,int[]);
+void deathAnimation(Location*,Location[],int,int,int,int,int,int,int,int[],int,int[]);
+int activeGhosts(Location*,int);
+void ghostState(int*,int[]);
+
 /* The board is a visual array of numbers as follows:
  * 0: dots that pacman has not eaten yet
  * 1: blue rectangle space that pacman cannot go through
  * 2: Pacman's location
+ * 3: Red ghost (Shadow / "Blinky") location
+ * 4: Pink ghost (Speedy / "Pinky") location
+ * 5: Cyan ghost (Bashful / "Inky") location
+ * 6: Orange ghost (Pokey / "Clyde") location
  * 7: Big dots (one in each of four corners)
  * 8: Space ghosts can go in but Pacman cannot
  * 9: Blank space */
@@ -60,15 +62,9 @@ int board[17][15]=     {{0,0,0,0,0,0,0,1,0,0,0,0,0,0,0},
 			{0,0,0,0,1,0,0,1,0,0,1,0,0,0,0},
 			{0,1,1,1,1,1,0,1,0,1,1,1,1,1,0},
 			{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}};
-int board2[17][15];
-
-void resetBoard(void){
-	memcpy(board,board2,sizeof(int)*rows*columns);
-}
 
 int main()
 {
-  memcpy(board2,board,sizeof(int)*rows*columns);
   int height=800,width=800;				//height and width of screen
   gfx_open(width,height,"Pacman");
   gfx_clear_color(0,0,0);
@@ -77,15 +73,14 @@ int main()
   int boardHeight=radius*rows,boardWidth=radius*columns;//Height of the board
   int xtopleft=width/2-boardWidth/2;			//x coord of top left corner of board
   int ytopleft=height/2-boardHeight*9/16; 		//y coord of top left corner of board
-  char movement;  
+  char movement[2];  
   int i,lives=3;//start with 3 lives
   int win=0;
   int active=0;	//this changes depending on number of dots left
   int initialDots=dotsNumber();
   int remainingDots=dotsNumber();
   int score=0;
-  int loop[4]={0,0,0,0};
-  int frightenLoop[4]={0};
+  int loop=0;
   int newScore[3]={0,0,0};//values [0]:new score to display(when ghost is killed),[1]:xvalue,[2]:yvalue
   Location pacman;
   Location ghosts[4];// enumerated to blinky, pinky, inky, clyde;
@@ -95,13 +90,6 @@ int main()
 while(1){ 
  titleScreen(height,width,ghosts,&pacman,state);
  score=0;
- lives=3;
-<<<<<<< HEAD
- win=0;
-=======
->>>>>>> 17cd21b2bfea53c4884fdf9dfa707042a5cad1e2
- for(i=0;i<=3;i++) loop[i]=0;	//reset the game
- resetBoard();
  gfx_wait();
 /* This is the gameplay loop, will repeat every time a life is lost */
  while(lives>0){
@@ -138,34 +126,40 @@ while(1){
   drawBoard(xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,2,score);
   drawPacman(xtopleft+radius*pacman.x+radius/2,ytopleft+radius*pacman.y+radius/2,pacman.orientation,0);
   for(i=blinky;i<=clyde;i++){
-    drawGhost(xtopleft+radius*ghosts[i].x+radius/2,ytopleft+radius*ghosts[i].y+radius/2,i,ghosts[i].orientation,state,frightenLoop[i]);
+    drawGhost(xtopleft+radius*ghosts[i].x+radius/2,ytopleft+radius*ghosts[i].y+radius/2,i,ghosts[i].orientation,state);
   }
+    
+  movement[0]=gfx_wait();
 
 /* This loop is the gameplay after all initialization */
   while(1){
-    /*if(gfx_event_waiting()){prevMovement=movement;*/ movement=gfx_wait();//}
+    usleep(300000);
     
   /* This block updates pacman position, checks for death
    * then updates ghosts' positions, then checks for death again */
-    movePacman(&pacman,ghosts,movement,xtopleft,ytopleft,boardHeight,boardWidth,active,state,&score,frightenLoop);
-    if(checkDeath(&pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,&score,newScore,frightenLoop,loop[0])){	//pacman's death?
-	for(i=0;i<=3;i++) loop[i]=0;	//reset the game
+    movePacman(&pacman,ghosts,movement,xtopleft,ytopleft,boardHeight,boardWidth,active,state,&score);
+    if(checkDeath(&pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,&score,newScore)){	//pacman's death?
+	loop=0;				//reset the ghosts
 	lives--;			//decrease the lives
 	printf("LIVES: %i\n",lives);
 	break;
     }
     targetGhosts(ghosts,&pacman,xtopleft,ytopleft,boardHeight,boardWidth,active,state);
-    if(checkDeath(&pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,&score,newScore,frightenLoop,loop[0])){	//pacman's death?
-	for(i=0;i<=3;i++) loop[i]=0;	//reset the game
+    if(checkDeath(&pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,&score,newScore)){	//pacman's death?
+	loop=0;				//reset the game
 	lives--;			//decrease the lives
 	printf("LIVES: %i\n",lives);
 	break;
     }
-    ghostState(loop,state,frightenLoop);
+    ghostState(&loop,state);
     active=activeGhosts(ghosts,loop);
 
+    if(gfx_event_waiting()){ 
+	movement[1]=movement[0];//This sets previous movement, will help if movement is not good
+	movement[0]=gfx_wait(); 
+    }
 /* The next function animates the motion of all of the objects (pacman and ghosts */
-    animateMotion(xtopleft,ytopleft,boardHeight,boardWidth,&pacman,ghosts,height,width,lives,state,score,newScore,frightenLoop,loop[0]);
+    animateMotion(xtopleft,ytopleft,boardHeight,boardWidth,&pacman,ghosts,height,width,lives,state,score,newScore);
 
 /* The case to exit the loop is winning, when there are no dots left */
     if(dotsNumber()==0){	//The player got all the dots, they won the game
@@ -177,59 +171,41 @@ while(1){
 	gfx_clear();
 	printf("\n\nGAME OVER\n\n");	
   	drawBoard(xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,0,score);
-	if(tolower(gfx_wait())=='n'){ return 0; }//This will start the entire game over including the title screen
-	else break;}
+	if(tolower(gfx_wait())=='y'){ break; }//This will start the entire game over including the title screen
+	else return 0;}
   else if(win){ printf("\n\nWINNER!\n\n");	
 	drawBoard(xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,win,score);
-	if(tolower(gfx_wait())=='n'){ return 0; }//This will end the game 
-	else break;}
+	if(tolower(gfx_wait())=='y'){ break; }//This will start the entire game over including the title screen
+	else return 0;}
   }
  }
 }
 
-int activeGhosts(Location ghosts[],int loop[]){
+int activeGhosts(Location ghosts[],int loop){
 /* This program returns the number of ghosts that should be active, as well as updates the 
  * values of the ghosts in the ghost house */
-/* A new ghost is put in play after 10+ghost*20 non-frighten loops */
+/* A new ghost is put in play after each 20 non-frighten loops */
   int active,i;
-  if(loop[0]<10)	active=0;
-  else if(loop[0]<30)	active=1;
-  else if(loop[0]<50)	active=2;
+  if(loop<20)		active=0;
+  else if(loop<40)	active=1;
+  else if(loop<60)	active=2;
   else			active=3;
 
 /* update starting locations of ghosts, but only once, when the ghost should leave the ghost house */
   switch(active){
 	case 0:
-		loop[1]=0;
 		ghosts[1].x=ghosts[1].prevX=7;
                 ghosts[1].y=7;
                 ghosts[1].prevY=8;
                 ghosts[1].orientation=up;
-		
-		ghosts[2].x=ghosts[2].prevX=6;
-	        ghosts[2].y=7;
-		ghosts[2].prevY=8;
-        	ghosts[2].orientation=right;
-		
-                ghosts[3].x=ghosts[3].prevX=8;
-                ghosts[3].y=7;
-		ghosts[3].prevY=8;
-                ghosts[3].orientation=left;
 		break;
 	case 1:
-		loop[2]=0;
 		ghosts[2].x=ghosts[2].prevX=7;
 	        ghosts[2].y=7;
 		ghosts[2].prevY=8;
         	ghosts[2].orientation=right;
-
-                ghosts[3].x=ghosts[3].prevX=8;
-                ghosts[3].y=7;
-                ghosts[3].prevY=8;
-                ghosts[3].orientation=left;
 		break;
 	case 2:	
-		loop[3]=0;
                 ghosts[3].x=ghosts[3].prevX=7;
                 ghosts[3].y=7;
 		ghosts[3].prevY=8;
@@ -239,31 +215,29 @@ int activeGhosts(Location ghosts[],int loop[]){
   return active;
 }
 
-void ghostState(int loop[],int state[],int frightenLoop[]){
+void ghostState(int *loop,int state[]){
+  static int frightenLoop[4]={0};
   int i;
   i=clyde;
   for(i=0;i<=3;i++){
     if(state[i]==frighten){
 	frightenLoop[i]++;
-	if(frightenLoop[i]<=30){//30 is the default number of loops the ghosts are frightened for
+	if(frightenLoop[i]<=30){//20 is the default number of loops the ghosts are frightened for
 		continue;		//This state stays frightened
-	} else { 
-		frightenLoop[i]=0; //reinitialize this variable
-	}
+	} else {frightenLoop[i]=0;}//reinitialize this variable
     } else if(state[i]>=dead){ continue;}
   //If the ghosts are not frightened, then they go back to their previous state
-  if(loop[i]<=5)	{state[i]=chase;}//chase for 5 loops
-  else if(loop[i]<=10)	{state[i]=scatter;}//scatter for 5 loops
-  else if(loop[i]<=30)	{state[i]=chase;}//chase for 20 loops
-  else if(loop[i]<=40)	{state[i]=scatter;}//scatter for 10 loops
-  else if(loop[i]<=60)	{state[i]=chase;}//chase for 20 loops
-  else if(loop[i]<=70)	{state[i]=scatter;}//scatter for 10
-  else if(loop[i]<=90)	{state[i]=chase;}//chase for 20
-  else if(loop[i]<=100)  	{state[i]=scatter;}//scatter for 10
+  if(*loop<=5)		{state[i]=scatter;}//scatter for 5 loops
+  else if(*loop<=30)	{state[i]=chase;}//chase for 25 loops
+  else if(*loop<=40)	{state[i]=scatter;}//scatter for 10 loops
+  else if(*loop<=60)	{state[i]=chase;}//chase for 20 loops
+  else if(*loop<=70)	{state[i]=scatter;}//scatter for 10
+  else if(*loop<=90)	{state[i]=chase;}//chase for 20
+  else if(*loop<=100)  	{state[i]=scatter;}//scatter for 10
   else			{state[i]=chase;}//chase permanantly
  }
  if(state[0]!=frighten && state[1]!=frighten && state[2]!=frighten && state[3]!=frighten){  
-   for(i=0;i<=3;i++) (loop[i])++;	//only increase loop when all of ghosts are not frightened
+   (*loop)++;	//only increase loop when all of ghosts are not frightened
  }  
 }
 
@@ -319,43 +293,12 @@ void drawBoard(int x,int y,int height,int width,int h,int w,int lives,int win,in
         gfx_text(w/2-18,h/2-8,"WINNER!");	
         gfx_text(w/2-48,h/2+8,"Play Again? (y/n)");	
   } else if(win==2){
-        gfx_color(255,255,255);
-        gfx_text(w/2-18,h/2-8,"READY?");	
-  } else if(win==3){
-        gfx_color(255,255,255);
-        gfx_text(w/2-8,h/2-8,"GO!"); 
-  } else if(win==5){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 7 times");
-  } else if(win==6){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 6 times");
-  } else if(win==7){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 5 times");
-  } else if(win==8){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 4 times");
-  } else if(win==9){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 3 times");
-  } else if(win==10){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-38,h/2+8,"Click 2 times");
-  } else if(win==11){
-        gfx_color(255,255,255);
-        gfx_text(w/2-23,h/2-8,"YOU DIED");
-        gfx_text(w/2-36,h/2+8,"Click 1 time");
+	gfx_color(255,255,255);
+        gfx_text(w/2-18,h/2-8,"READY?");
   }
 } 
 
-void animateMotion(int xtl, int ytl,int boardHeight,int boardWidth,Location *pacman,Location ghosts[],int height,int width, int lives,int state[],int score,int newScore[],int frightenLoop[],int loop){
+void animateMotion(int xtl, int ytl,int boardHeight,int boardWidth,Location *pacman,Location ghosts[],int height,int width, int lives,int state[],int score,int newScore[]){
 /* This function is called after pacman is moved, and animates the movement of pacman,
  * and all the ghosts. While the ghosts' new positions are tabulated in moveGhosts, they
  * are not drawn until this function is called after pacman is moved */
@@ -365,13 +308,30 @@ void animateMotion(int xtl, int ytl,int boardHeight,int boardWidth,Location *pac
   int y=ytl+pacman->y*radius+radius/2;
 
   Location delta;
-  delta.x=(pacman->x-pacman->prevX)*radius/loops;
-  delta.y=(pacman->y-pacman->prevY)*radius/loops;
+  delta.x=(pacman->x-delta.prevX)*radius/loops;
+  delta.y=(pacman->y-delta.prevY)*radius/loops;
+  switch(pacman->orientation){
+	case up:
+		delta.prevX=pacman->x;
+  		delta.prevY=pacman->y+1;
+		break;
+        case down:
+                delta.prevX=pacman->x;
+                delta.prevY=pacman->y-1;
+                break;
+        case left:
+                delta.prevX=pacman->x+1;
+                delta.prevY=pacman->y;
+                break;
+        case right:
+                delta.prevX=pacman->x-1;
+                delta.prevY=pacman->y;
+                break;
+  }
 /* Currently, pacman only moves one space abruptly, he cannot smoothly move from cell to cell */
   //for(j=1;j<=loops+1;j++){	//this loop allows the pacman movement to be smooth
     gfx_clear();
-    if(loop==1){i=3;}
-    drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,i,score);
+    drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
     drawPacman(x,y,pacman->orientation,0);
     //x+=delta.x;
     //y+=delta.y;
@@ -380,15 +340,13 @@ void animateMotion(int xtl, int ytl,int boardHeight,int boardWidth,Location *pac
   for(i=blinky;i<=clyde;i++){
     x=xtl+ghosts[i].x*radius+radius/2;
     y=ytl+ghosts[i].y*radius+radius/2;
-    drawGhost(x,y,i,ghosts[i].orientation,state,frightenLoop[i]);
+    drawGhost(x,y,i,ghosts[i].orientation,state);
   }
   /* Check if there needs to be a score displayed */
   if(newScore[0]){
-        gfx_color(120,120,120);
-        gfx_text(xtl+newScore[1]*radius+radius/2,ytl+newScore[2]*radius+radius/2,num2str(newScore[0]));
-        newScore[0]=0;
-	newScore[1]=0;
-	newScore[2]=0;
+	gfx_color(120,120,120);
+	gfx_text(xtl+newScore[1]*radius+radius/2,ytl+newScore[2]*radius+radius/2,num2str(newScore[0]));
+	newScore[0]=0;
   }
 }
 
@@ -419,15 +377,14 @@ void drawPacman(int x,int y,int orientation,int mouthOpen){
   if(!mouthOpen)  pacLoop++;
 }
 
-void drawGhost(int x,int y,int ghost,int orientation,int state[],int frightenLoop){
+void drawGhost(int x,int y,int ghost,int orientation,int state[]){
 /* ghost is the number of ghost to draw
  * 0:blinky, 1:pinky, 2:inky, 3:clyde */
   static int ghostLoop[4]={0,1,1,0};
-  int f; //f determines whether a frightened ghost is white or blue (flashes at end of frightened state)
-  if(frightenLoop>=20 && state[ghost]==frighten){ f=frightenLoop%2; } else { f=-1; }
+
 /* Choose color */
   if(state[ghost]==frighten){
-     if(!f){ gfx_color(0,0,150); } else if(f==1){ gfx_color(255,255,255); } else {gfx_color(0,0,150);}
+     gfx_color(0,0,150);
   } else {
      switch(ghost){
 	case blinky: 
@@ -484,7 +441,6 @@ void drawGhost(int x,int y,int ghost,int orientation,int state[],int frightenLoo
  * Values for all circle centers are made by trial and error, until the ghost looked good */
   gfx_color(255,255,255);
   if(state[ghost]==frighten){
-    if(f==1){gfx_color(0,0,150);}
 	gfx_fill_circle(x-4*r/10,y-2*P,r/4);
         gfx_fill_circle(x+4*r/10,y-2*P,r/4);
 	//next six are the mouth
@@ -524,17 +480,17 @@ void drawGhost(int x,int y,int ghost,int orientation,int state[],int frightenLoo
   }
 }
 
-int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int ytopleft,int boardHeight,int boardWidth,int activeGhosts,int state[],int *score,int frightenLoop[]){
+int movePacman(Location *pacman,Location ghosts[],char movement[],int xtopleft,int ytopleft,int boardHeight,int boardWidth,int activeGhosts,int state[],int *score){
 /*returns 1 if pacman moves successfully, 0 if he does not move */
   int i=pacman->y,j=pacman->x,death,k;
-  switch(movement){
+  for(k=0;k<=1;k++){
+    switch(movement[k]){
 	case 'Q'://left movement
 		if(j!=0){
-		  if(board[i][j-1]!=1 && board[i][j-1]!=8){
+		  if(board[i][j-1]!=1 && board[i][j-1]!=8){	//If it can move this way, else return
                     /* Check for the big dot */
                     if(board[i][j-1]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;   //switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
                     }
 		    if(board[i][j-1]==0){*score+=10;}//add 10 points for every small dot
@@ -543,6 +499,9 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
 		    pacman->prevX=pacman->x;
 		    pacman->x--;
 		    pacman->orientation=left;
+		    if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		  } else { 
+			continue; 
 		  }
 		} else if (i==7 && j==0){
                   board[i][j]=9;
@@ -550,7 +509,10 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                   board[i][columns-1]=2;
 		  pacman->x=columns-1;
 		  pacman->orientation=left;
-                }
+		  if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		} else { 
+			continue; 
+		}
 		return 1;
 		break;
 	case 'T'://down movement
@@ -559,7 +521,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
                     if(board[i+1][j]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;   //switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
 		    }
 		    if(board[i+1][j]==0){*score+=10;}//add 10 points for every small dot
@@ -568,7 +529,10 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     pacman->prevY=pacman->y;
 		    pacman->y++;
 		    pacman->orientation=down;
-                  }
+		    if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		  } else { 
+			continue; 
+		  }
                 }
 		return 1;
 		break;
@@ -578,7 +542,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
 		    if(board[i][j+1]==7){
 			state[0]=state[1]=state[2]=state[3]=frighten;	//switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
 		    }
 		    if(board[i][j+1]==0){*score+=10;}//add 10 points for every small dot
@@ -587,13 +550,19 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     pacman->prevX=pacman->x;
 		    pacman->x++;
 		    pacman->orientation=right;
-                  }
+		    if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		  } else { 
+			continue; 
+		  }
                 } else if (i==7 && j==columns-1){//this is for the spot on the rght to flip sides of the board
 		  if(board[i][0]==0){*score+=10;}//add 10 points for every small dot
 		  board[i][0]=2;
 		  board[i][j]=9;
 		  pacman->x=0;
 		  pacman->orientation=right;
+		  if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		} else { 
+			continue; 
 		}
 		return 1;
 		break;
@@ -603,7 +572,6 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     /* Check for the big dot */
                     if(board[i-1][j]==7){
                         state[0]=state[1]=state[2]=state[3]=frighten;	//switch ghosts to frighten state
-			for(k=0;k<=3;k++) frightenLoop[k]=0;
 			*score+=50;
                     }
 		    if(board[i-1][j]==0){*score+=10;}//add 10 points for every small dot
@@ -612,22 +580,25 @@ int movePacman(Location *pacman,Location ghosts[],char movement,int xtopleft,int
                     pacman->prevY=pacman->y;
 		    pacman->y--;
 		    pacman->orientation=up;
-                  }
+		    if(k==0){  movement[1]=movement[0];  }//If the new value works, store in movement[1]
+		  } else { 
+			continue; 
+		  }
                 }
 		return 1;
 		break;
 	default: break;
+    }
   }
-  return 0;//pacman did not move
+  return 0;
 }
-int checkDeath(Location *pacman,Location ghosts[],int xtopleft,int ytopleft,int boardHeight,int boardWidth,int height,int width,int lives,int state[],int *score,int newScore[],int frightenLoop[],int loop){
+int checkDeath(Location *pacman,Location ghosts[],int xtopleft,int ytopleft,int boardHeight,int boardWidth,int height,int width,int lives,int state[],int *score,int newScore[]){
 /* Returns 1 if death, returns 0 otherwise */
   int i,j,fright=0;
   for(i=blinky;i<=clyde;i++){
     if(pacman->x==ghosts[i].x && pacman->y==ghosts[i].y && state[i]==frighten){
 	printf("Killed a Ghost");
 	state[i]=dead;
-	frightenLoop[i]=0;
 	//Calculate how many ghosts are in the frightened state still to determine number of points
 	for(j=0;j<=3;j++){
 		if(state[j]==frighten){
@@ -636,75 +607,73 @@ int checkDeath(Location *pacman,Location ghosts[],int xtopleft,int ytopleft,int 
 	}
 	gfx_color(255,255,255);
 	switch(fright){
-                case 0:
-                        newScore[1]=pacman->x;
+		case 0:
+			newScore[1]=pacman->x;
                         newScore[2]=pacman->y;
                         newScore[0]=1600;
-                        *score+=1600;
-                        break;
-                case 1:
-                        newScore[1]=pacman->x;
+			*score+=1600;
+			break;
+		case 1:
+			newScore[1]=pacman->x;
                         newScore[2]=pacman->y;
                         newScore[0]=800;
-                        *score+=800;
-                        break;
-                case 2:
-                        newScore[1]=pacman->x;
+			*score+=800;
+			break;
+		case 2:
+			newScore[1]=pacman->x;
                         newScore[2]=pacman->y;
                         newScore[0]=400;
-                        *score+=400;
-                        break;
-                case 3:
-                        newScore[1]=pacman->x;
+			*score+=400;
+			break;
+		case 3:
+			newScore[1]=pacman->x;
                         newScore[2]=pacman->y;
                         newScore[0]=200;
-                        *score+=200;
-                        break;
-        }
+			*score+=200;
+			break;
+	}
+	//animateMotion(xtopleft,ytopleft,boardHeight,boardWidth,pacman,ghosts,height,width,lives,state,*score);
     } else if(pacman->x==ghosts[i].x && pacman->y==ghosts[i].y && state[i]<frighten){
 	printf("\n\nPacman Died\n\n");
-	deathAnimation(pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,*score,newScore,frightenLoop,loop); 
+	deathAnimation(pacman,ghosts,xtopleft,ytopleft,boardHeight,boardWidth,height,width,lives,state,*score,newScore); 
 	return 1;
     } else { continue; }
   }
   return 0;
 }
 
-void deathAnimation(Location *pacman,Location ghosts[],int xtl,int ytl,int boardHeight,int boardWidth,int height,int width,int lives,int state[],int score,int newScore[],int frightenLoop[],int loop){
+void deathAnimation(Location *pacman,Location ghosts[],int xtl,int ytl,int boardHeight,int boardWidth,int height,int width,int lives,int state[],int score,int newScore[]){
 /* Death animation is in four states, first full circle, then pacman oriented upward, then half circle, then small sliver below, then gone, then explode */
   int r=radius/2-1;
-  int timer=1000000;
+  int timer=200000;
   int x=xtl+pacman->x*radius+radius/2;   //first location to draw, will increment 5 times
   int y=ytl+pacman->y*radius+radius/2;
-  
-  animateMotion(xtl,ytl,boardHeight,boardWidth,pacman,ghosts,height,width,lives,state,score,newScore,frightenLoop,loop);
-  gfx_wait();
+ 
+  usleep(1000000); 
+  animateMotion(xtl,ytl,boardHeight,boardWidth,pacman,ghosts,height,width,lives,state,score,newScore);
 
+  usleep(1000000); 
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,5,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   gfx_color(255,255,0);
   gfx_fill_circle(x,y,radius/2-1);
-  //gfx_wait();
 
-  gfx_wait();
-  //usleep(timer);
+  usleep(timer);
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,6,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   drawPacman(x,y,up,1);
 
-  gfx_wait();
-  //usleep(timer);
+  usleep(timer);
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,7,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   gfx_color(255,255,0);
   drawPacman(x,y,0,0);
   gfx_color(0,0,0);
   gfx_fill_rectangle(x-radius/2-1,y-radius/2+1,radius,radius/2-1);
 
-  gfx_wait();
-  //usleep(timer);  
+  usleep(timer);  
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,8,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   gfx_color(255,255,0);
   gfx_fill_circle(x,y,radius/2-1);
   gfx_color(0,0,0);
@@ -712,15 +681,13 @@ void deathAnimation(Location *pacman,Location ghosts[],int xtl,int ytl,int board
   gfx_fill_triangle(x+r,y-r,x+r,y+r,right);
   gfx_fill_triangle(x-r,y-r,x-r,y+r,left);
 
-  gfx_wait();
-  //usleep(timer); 
+  usleep(timer); 
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,9,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
 
-  gfx_wait();
-  //usleep(timer);
+  usleep(timer);
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,10,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   gfx_color(255,255,0);
 
   float angle=2*M_PI/5;       //partial snowflake
@@ -731,10 +698,9 @@ void deathAnimation(Location *pacman,Location ghosts[],int xtl,int ytl,int board
     gfx_line(x,y,xnew[i-1],ynew[i-1]);
   }
 
-  gfx_wait();
-  //usleep(timer);
+  usleep(timer);
   gfx_clear();
-  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,11,score);
+  drawBoard(xtl,ytl,boardHeight,boardWidth,height,width,lives,0,score);
   gfx_color(255,255,0);
   angle=2*M_PI/5;              //snowflake with short lines
   for(i=1;i<=5;i++){
@@ -755,7 +721,7 @@ void targetGhosts(Location ghosts[],Location *pacman,int xtl,int ytl,int boardHe
  * Each ghost tries to get to its specified target that turn */
   int target[2];//target[0]=ytarget target[1]=xtarget
   for(k=blinky;k<=active;k++){
-    if(state[k]==frighten && loop%2){//if a ghost is frightened, they slow down to one space every two loops
+    if(/*state[k]==frighten && */loop%2){//if a ghost is frightened, they slow down to one space every two loops
 	target[0]=ghosts[k].y; 
 	target[1]=ghosts[k].x;
 	continue;
@@ -898,15 +864,17 @@ void moveGhost(Location *ghost,int xtl,int ytl,int boardHeight,int boardWidth,in
  * determine which is the closest to target */
   movement=minLocation(distance);
   if (i==7 && j==0 && ghost->prevX==1){//this is for the spot on the left to flip sides of the board
-        ghost->prevX=columns;
-        ghost->x=columns-1;
-        ghost->orientation=left;
-  } else if (i==7 && j==columns-1 && ghost->prevX==columns-2){//this is for the spot on the rght to flip sides of the board
-        ghost->prevX=-1;
-	ghost->x=0;
-        ghost->orientation=left;
-  } else {
-    switch(movement){
+      ghost->prevX=columns;
+      ghost->x=columns-1;
+      ghost->orientation=left;
+      return;
+  }else if(i==7 && j==columns-1 && ghost->prevX==columns-2){//this is for the spot on the rght to flip sides of the board
+      ghost->prevX=-1;
+      ghost->x=0;
+      ghost->orientation=left;
+      return;
+  }
+  switch(movement){
       case up:
 	ghost->prevY=ghost->y;
 	ghost->prevX=ghost->x;
@@ -931,7 +899,6 @@ void moveGhost(Location *ghost,int xtl,int ytl,int boardHeight,int boardWidth,in
         ghost->x++;                                  //move right
         ghost->orientation=right;                    //set orientation right
 	break;
-    }
   }
 }
 int dotsNumber(void){
@@ -962,21 +929,6 @@ void titleScreen(int height,int width,Location ghosts[],Location *pacman,int sta
   gfx_clear();
   gfx_color(255,255,255);
   gfx_text(width*.35+10,height*.8,"Programmed By: CORY JBARA");
-  gfx_text(width*.7,height*.8-32,"Use the arrow keys to move");
-  gfx_text(width*.7,height*.8,"Press any button to start");
-  
-/* Draw dots and point values */
-  gfx_color(255,200,0);
-  gfx_fill_rectangle(width*.8-2,height/2-15,4,4);
-  gfx_color(255,255,255);
-  gfx_text(width*.8+10,height/2-9,"- 10 Points");
-
-  gfx_color(255,200,0);
-  gfx_fill_circle(width*.8-4,height/2+15,8);
-  gfx_color(255,255,255);
-  gfx_text(width*.8+10,height/2+20,"- 50 Points");
-  
-/* Draws ghosts and their names */  
   x=width/3;
   y=height*.45+i*height/15;
   gfx_text(x,y,"CHARACTER ------------------------ NICKNAME");
@@ -985,7 +937,7 @@ void titleScreen(int height,int width,Location ghosts[],Location *pacman,int sta
 	state[i]=chase;
 	x=width/4;
 	y=height*.45+i*height/15;
-	drawGhost(x,y,i,right,state,0);
+	drawGhost(x,y,i,right,state);
 	
 	x=width/3;
 	switch(i){
@@ -1012,7 +964,7 @@ void titleScreen(int height,int width,Location ghosts[],Location *pacman,int sta
   y=height*.72;
   for(i=0;i<=3;i++){
 	x=width*.4+i*width/20;
-        drawGhost(x,y,i,left,state,0);
+        drawGhost(x,y,i,left,state);
   }
   drawPacman(width*.4-width/20,y,left,1);
 
