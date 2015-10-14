@@ -1,1 +1,0 @@
-For this project, I, Cory Jbara, worked alone on a game of Pacman. The motion is very discrete, as each time the user presses a button, the entire board is updated, but then it waits for another user input. Although it is not continuous like the original Pac-Man, it still has the same logic behing the ghosts' movements. To make Pac-Man move, use the four arrow keys. Enjoy!

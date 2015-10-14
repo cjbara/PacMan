@@ -96,10 +96,7 @@ while(1){
  titleScreen(height,width,ghosts,&pacman,state);
  score=0;
  lives=3;
-<<<<<<< HEAD
  win=0;
-=======
->>>>>>> 17cd21b2bfea53c4884fdf9dfa707042a5cad1e2
  for(i=0;i<=3;i++) loop[i]=0;	//reset the game
  resetBoard();
  gfx_wait();
