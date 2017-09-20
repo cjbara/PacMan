@@ -1,8 +1,4 @@
 <h3 class="modal-title" id="myModalLabel">PacMan</h3>
-        <video height="100%" controls>
-            <source src="http://coryjbara.com/assets/PacMan.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
         <h4>Project Overview</h4>
         <p>For my final project of my first computing class, I programmed the retro arcade game Pac-man in C. I made a few simplifications to the original game, but it plays very similarly to the original. First, I used a grid of 17x15, upon which the board was drawn. Each box inside the grid corresponds to 40 square pixels, which both Pac-Man and all of the ghosts can fit inside entirely. Also, due to this smaller nature of the board, the number of pellets was reduced to 155 instead of the classic 240 dots. Due to the primitive graphics engine I used (I had to hand code each element on the board as a combination of lines), the game does not have continuous motion. The user has the ability to move to the next loop by pressing any button. This allows for less rendering time and a more enjoyable user experience.</p>
         <h4>Specifics of the Game</h4>
@@ -46,10 +42,6 @@
 <p>I wanted to elaborate more on the Ghost's movements (because I am very proud of this project), so I did so below.</p>
 
 <h3 class="modal-title" id="myModalLabel">PacMan's Ghost's Movement Algorithms</h3>
-        <video height="500" controls>
-            <source src="assets/PacMan.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
         <p>The most complicated part of the game was programming the ghosts. Each ghost
         had three (but actually five) different states. These were: chase, scatter,
         frighten, dead, and housed. Each of these states caused the ghosts to move
