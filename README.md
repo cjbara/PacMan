@@ -1,4 +1,6 @@
 <h3 class="modal-title" id="myModalLabel">PacMan</h3>
+        <img src="http://coryjbara.com/assets/images/pacman.png">
+
         <h4>Project Overview</h4>
         <p>For my final project of my first computing class, I programmed the retro arcade game Pac-man in C. I made a few simplifications to the original game, but it plays very similarly to the original. First, I used a grid of 17x15, upon which the board was drawn. Each box inside the grid corresponds to 40 square pixels, which both Pac-Man and all of the ghosts can fit inside entirely. Also, due to this smaller nature of the board, the number of pellets was reduced to 155 instead of the classic 240 dots. Due to the primitive graphics engine I used (I had to hand code each element on the board as a combination of lines), the game does not have continuous motion. The user has the ability to move to the next loop by pressing any button. This allows for less rendering time and a more enjoyable user experience.</p>
         <h4>Specifics of the Game</h4>
