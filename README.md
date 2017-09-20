@@ -1,6 +1,6 @@
 <h3 class="modal-title" id="myModalLabel">PacMan</h3>
         <video height="100%" controls>
-            <source src="assets/PacMan.mp4" type="video/mp4">
+            <source src="http://coryjbara.com/assets/PacMan.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
         <h4>Project Overview</h4>
